@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"container/ring"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 
 var memoryTs sync.Map
 var memoryM3u8 sync.Map
+var PlaylistSequence sync.Map
 
 func writeHLS(r *Stream) {
 	if filterReg != nil && !filterReg.MatchString(r.StreamPath) {
@@ -85,17 +86,24 @@ func writeHLS(r *Stream) {
 	}
 	hls_segment_data := &bytes.Buffer{}
 	outStream.OnVideo = func(ts uint32, pack *VideoPack) {
-		packet, err := VideoPacketToPES(ts , pack , vt.ExtraData.NALUs)
+		packet, err := VideoPacketToPES(ts, pack, vt.ExtraData.NALUs)
 		if err != nil {
 			return
 		}
 		if pack.IDR {
 			// 当前的时间戳减去上一个ts切片的时间戳
 			if int64(ts-vwrite_time) >= hls_fragment {
-				//fmt.Println("time :", video.Timestamp, tsSegmentTimestamp)
 
-				tsFilename := strconv.FormatInt(time.Now().Unix(), 10) + ".ts"
+				// 计算 TS 分片，默认从0开始，会一直保存在内存中，直到收到删除流的请求
+				var seq = int(0)
+				v, ok := PlaylistSequence.Load(r.StreamPath)
+				if ok {
+					log.Printf("PlaylistSequence:%#v\n", v)
+					seq = v.(int) + 1
+				}
+				PlaylistSequence.Store(r.StreamPath, seq)
 
+				tsFilename := fmt.Sprintf("%d.ts", seq)
 				tsData := hls_segment_data.Bytes()
 				tsFilePath := filepath.Join(filepath.Dir(hls_path), tsFilename)
 				if config.EnableWrite {

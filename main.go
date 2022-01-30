@@ -83,6 +83,17 @@ func init() {
 			p.Publish(streamPath)
 		}
 	}
+
+	// 释放ts分片数的内存计数器
+	http.HandleFunc("/api/hls/seq_delete", func(w http.ResponseWriter, r *http.Request) {
+		CORS(w, r)
+		streamPath := r.URL.Query().Get("streamPath")
+		if len(strings.TrimSpace(streamPath)) > 0 {
+			log.Println("")
+			PlaylistSequence.Delete(streamPath)
+		}
+		w.Write([]byte(`{"code":0}`))
+	})
 	http.HandleFunc("/api/hls/pull", func(w http.ResponseWriter, r *http.Request) {
 		CORS(w, r)
 		targetURL := r.URL.Query().Get("target")
