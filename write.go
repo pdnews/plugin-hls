@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -93,17 +95,9 @@ func writeHLS(r *Stream) {
 		if pack.IDR {
 			// 当前的时间戳减去上一个ts切片的时间戳
 			if int64(ts-vwrite_time) >= hls_fragment {
+				tsFilename := genTsFileName(r)
+				log.Println(tsFilename)
 
-				// 计算 TS 分片，默认从0开始，会一直保存在内存中，直到收到删除流的请求
-				var seq = int(0)
-				v, ok := PlaylistSequence.Load(r.StreamPath)
-				if ok {
-					log.Printf("playlist sequence %s:%#v\n", r.StreamPath, v)
-					seq = v.(int) + 1
-				}
-				PlaylistSequence.Store(r.StreamPath, seq)
-
-				tsFilename := fmt.Sprintf("%d.ts", seq)
 				tsData := hls_segment_data.Bytes()
 				tsFilePath := filepath.Join(filepath.Dir(hls_path), tsFilename)
 				if config.EnableWrite {
@@ -185,4 +179,48 @@ func writeHLS(r *Stream) {
 			}
 		})
 	}
+}
+
+// genTsFileName 根据文件名模板生成文件名，兼容 SRS 的写法
+func genTsFileName(r *Stream) string {
+	now := time.Now()
+
+	// 默认按时间取名
+	if config.TsFileName == "" {
+		return strconv.FormatInt(now.Unix(), 10) + ".ts"
+	}
+
+	//如果需要记录序号
+	var seq = int64(0)
+	if strings.Contains(config.TsFileName, "[seq]") {
+		// 计算 TS 分片，默认从0开始，会一直保存在内存中，直到收到删除流的请求
+		v, ok := PlaylistSequence.Load(r.StreamPath)
+		if ok {
+			log.Printf("playlist sequence %s:%#v\n", r.StreamPath, v)
+			seq = v.(int64) + 1
+		}
+		PlaylistSequence.Store(r.StreamPath, seq)
+	}
+
+	var template = map[string]string{
+		"[app]":       r.AppName,
+		"[stream]":    r.StreamName,
+		"[2006]":      now.Format("2006"),
+		"[01]":        now.Format("01"),
+		"[02]":        now.Format("02"),
+		"[15]":        now.Format("15"),
+		"[04]":        now.Format("04"),
+		"[05]":        now.Format("05"),
+		"[999]":       strconv.FormatInt(now.UnixMilli()-now.Unix()*1e3, 10),
+		"[second]":    strconv.FormatInt(now.Unix(), 10),
+		"[timestamp]": strconv.FormatInt(now.UnixMilli(), 10),
+		"[seq]":       strconv.FormatInt(seq, 10),
+	}
+
+	fileName := config.TsFileName
+	for k, v := range template {
+		fileName = strings.ReplaceAll(fileName, string(k), v)
+	}
+
+	return fileName
 }

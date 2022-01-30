@@ -34,6 +34,7 @@ var config struct {
 	Filter       string // 过滤，正则表达式
 	Path         string //存放路径
 	AutoPullList map[string]string
+	TsFileName   string //ts命名模板
 }
 var pconfig = PluginConfig{
 	Name:   "HLS",
