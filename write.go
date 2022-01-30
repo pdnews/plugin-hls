@@ -98,7 +98,7 @@ func writeHLS(r *Stream) {
 				var seq = int(0)
 				v, ok := PlaylistSequence.Load(r.StreamPath)
 				if ok {
-					log.Printf("PlaylistSequence:%#v\n", v)
+					log.Printf("playlist sequence %s:%#v\n", r.StreamPath, v)
 					seq = v.(int) + 1
 				}
 				PlaylistSequence.Store(r.StreamPath, seq)
