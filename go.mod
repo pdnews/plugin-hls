@@ -9,3 +9,5 @@ require (
 	github.com/gogf/gf v1.16.6
 	github.com/quangngotan95/go-m3u8 v0.1.0
 )
+
+replace github.com/Monibuca/engine/v3 => ../engine

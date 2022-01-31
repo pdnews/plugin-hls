@@ -67,10 +67,15 @@ func writeHLS(r *Stream) {
 		Targetduration: int(hls_fragment / 666), // hlsFragment * 1.5 / 1000
 	}
 	hls_path := filepath.Join(config.Path, r.StreamPath, fmt.Sprintf("%d.m3u8", time.Now().Unix()))
-	os.MkdirAll(filepath.Dir(hls_path), 0755)
+	if err:= os.MkdirAll(filepath.Dir(hls_path), 0755); err != nil {
+		log.Printf("can't create hls path: %s", err.Error())
+		return
+	}
+
 	var file *os.File
 	file, err = os.OpenFile(hls_path, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
+		log.Printf("can't create hls path: %s", err.Error())
 		return
 	}
 	defer file.Close()
@@ -96,12 +101,16 @@ func writeHLS(r *Stream) {
 			// 当前的时间戳减去上一个ts切片的时间戳
 			if int64(ts-vwrite_time) >= hls_fragment {
 				tsFilename := genTsFileName(r)
-				log.Println(tsFilename)
-
 				tsData := hls_segment_data.Bytes()
 				tsFilePath := filepath.Join(filepath.Dir(hls_path), tsFilename)
+
 				if config.EnableWrite {
+					if err := os.MkdirAll(filepath.Dir(tsFilePath), os.ModePerm); err != nil {
+						log.Printf("can't create ts path: %s", err.Error())
+						return
+					}
 					if err = writeHlsTsSegmentFile(tsFilePath, tsData); err != nil {
+						log.Printf("can't create ts file: %s", err.Error())
 						return
 					}
 				}
