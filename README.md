@@ -36,6 +36,7 @@ Filter = "^live"
 # ts文件命名，支持变量，默认时区为Local，暂不支持目录
 # [app], the app of stream.
 # [stream], the stream name of stream.
+# [path], the stream path name of stream.
 # [2006], replace this const to current year.
 # [01], replace this const to current month.
 # [02], replace this const to current date.

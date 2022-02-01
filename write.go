@@ -67,7 +67,7 @@ func writeHLS(r *Stream) {
 		Targetduration: int(hls_fragment / 666), // hlsFragment * 1.5 / 1000
 	}
 	hls_path := filepath.Join(config.Path, r.StreamPath, fmt.Sprintf("%d.m3u8", time.Now().Unix()))
-	if err:= os.MkdirAll(filepath.Dir(hls_path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(hls_path), 0755); err != nil {
 		log.Printf("can't create hls path: %s", err.Error())
 		return
 	}
@@ -214,6 +214,7 @@ func genTsFileName(r *Stream) string {
 	var template = map[string]string{
 		"[app]":       r.AppName,
 		"[stream]":    r.StreamName,
+		"[url]":       r.StreamPath,
 		"[2006]":      now.Format("2006"),
 		"[01]":        now.Format("01"),
 		"[02]":        now.Format("02"),
